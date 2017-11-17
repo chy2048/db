@@ -1,0 +1,93 @@
+1.安装GCC环境
+
+#查看gcc版本，看是否需要安装升级
+gcc -v
+
+#在线安装
+yum install gcc-c++
+
+#离线安装
+http://www.cnblogs.com/xuliangxing/p/7132018.html
+
+==============================
+
+2.安装Ruby环境（需要安装ruby和rubygems）
+#在线安装
+yum install ruby
+yum install rubygems
+
+#离线方式
+http://www.cnblogs.com/xuliangxing/p/7132656.html
+http://www.cnblogs.com/xuliangxing/p/7133544.html
+
+==============================
+
+3.安装Redis
+#官网下载
+https://redis.io/download
+
+#解压
+cd /home/chy/redis
+tar -zxvf redis-3.2.9.tar.gz
+
+#make 这里如果不指定PREFIX，默认将安装在/usr/local/bin下，保持默认就好
+cd /home/chy/redis/redis-3.2.9
+make && make install
+
+#所有相关配置信息都在conf里面，如果不设置，默认端口号为：6379
+cd /home/chy/redis/redis-3.2.9
+ls
+#redis-server redis.conf
+
+==============================
+
+4.Redis集群配置
+#创建文件夹
+mkdir redis700{1,2,3,4,5,6}
+
+#拷贝
+cd /usr/local/bin/
+cp redis-cli redis-server /home/chy/redis/redis7001/
+cp redis-cli redis-server /home/chy/redis/redis7002/
+cp redis-cli redis-server /home/chy/redis/redis7003/
+cp redis-cli redis-server /home/chy/redis/redis7004/
+cp redis-cli redis-server /home/chy/redis/redis7005/
+cp redis-cli redis-server /home/chy/redis/redis7006/
+
+#修改配置文件redis.conf（参考配置见redis.conf）,依次放到7001-7006目录下（端口、日志目录等需区分）
+
+#到各个目录下,依次启动redis
+redis-server redis.conf
+
+#到之前解压的文件redis-3.2.9/src目录下找到文件为：redis-trib.rb
+cp redis-trib.rb /home/chy/redis/
+
+#用redis-trib.rb创建集群模式 （可能会报错，看下面的报错解决）
+./redis-trib.rb create --replicas 1 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 127.0.0.1:7006
+
+==============================
+
+5.报错解决
+http://www.cnblogs.com/xuliangxing/p/7146868.html
+
+==============================
+
+6.性能优化（重要）
+#进入任意一个redis实例的目录
+cd /home/chy/redis/redis7006/
+vim nodes.conf
+
+#根据node信息,登录redis
+redis-cli -p 7000 -c -h 127.0.0.1
+
+#把所有master节点的save去掉
+config set save ""
+
+通过脚本,检测redis是否发生master-slave的切换,如果有切换,则把master切回来
+原则就是master节点不做save操作,slave节点同步master的数据,并save
+这样做之后,master节点的角色会固化下来,但能极大的提高redis的性能
+
+
+
+
+
