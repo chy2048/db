@@ -83,9 +83,9 @@ redis-cli -p 7000 -c -h 127.0.0.1
 #把所有master节点的save去掉
 config set save ""
 
-通过脚本,检测redis是否发生master-slave的切换,如果有切换,则把master切回来
+通过脚本,检测redis是否发生master-slave的切换,如果有切换,重新修改主备的save策略
 原则就是master节点不做save操作,slave节点同步master的数据,并save
-这样做之后,master节点的角色会固化下来,但能极大的提高redis的性能
+这样做能极大的提高redis的性能
 
 
 
