@@ -1,0 +1,2 @@
+清空表的数据
+truncate 'table'
