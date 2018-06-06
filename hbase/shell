@@ -1,2 +1,7 @@
 清空表的数据
 truncate 'table'
+
+修改表的ttl
+disable 'table'
+alter 'table' , {NAME=>'f1',TTL=>'600000'}
+enable 'table'
