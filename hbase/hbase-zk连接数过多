@@ -1,0 +1,25 @@
+起因：
+  hbase表的compact指令无法执行，导致集群的storeFile过多，监控报警。
+
+排查过程：
+  1.查看regionServer报错日志
+  (org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper.retryOrThrow:277)  - ZooKeeper getData failed after 4 attempts
+  2.查看zookeeper，发现zk的日志也有报错
+  Too many connections from /ip - max is 60
+  初步诊断是regionServer和zk的连接数达到上限。
+  根据网上的资料，分别修改 hbase的参数hbase.zookeeper.property.maxClientCnxns以及zk的参数maxClientCnxns，都改为300 （参数含义略）
+  重启zookeeper，regionServer能够正常工作，并且不再报错。
+  3.通过netstat指令，监控zookeeper的链接数，发现regionsServer的连接数依旧在增长，并且tcp连接状态都是ESTAB 即处于连接状态。
+  
+继续排查连接数增长的问题:
+  1.初步怀疑是某些地方有bug,hbase和zk的连接没有释放,通过jstack指令，观察regionServer的线程栈
+  2.（图等下补充）发现pnoenix的DefaultStatisticsCollector中，会调用htable.get(get)方法。
+    htable.get(get) 方法经过一系列调用后，最终会调用HConnectionImplementation中的getKeeperAliveZookeeperWatcher
+    产生一个zookeeper连接，但是最后并未释放该连接。
+  3.DefaultStatisticsCollector 类是phoenix-hbase-4.9.0-server.jar包当中一个类，该问题在最新phoenix-hbase-4.10.0-server.jar包当中已经修复。
+    问题方法比较简单，就是在使用完毕后调用htable.close()方法。（该方法最终会调用HConnectionImplementation.shutdown()方法，将连接释放掉）
+  4.相关的jira连接 https://issues.apache.org/jira/browse/PHOENIX-3553
+  
+总结：
+4.9版本的phoneix会导致zk连接泄漏，请求量小的情况下可能一时半会儿发现不了，但最终会影响habse正常使用。
+在4.10中，此bug已经被修复。
